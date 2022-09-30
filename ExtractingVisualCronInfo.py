@@ -57,31 +57,32 @@ def getJobInfo(machineName, authToken, conn):
     jsonResult = []
     jsonResult = jobListResponse.json()
     listLength = len(jsonResult)
-    jobName = ''
-    jobDesc = ''
-    groupName = ''
-    jobId = ''
     print("Machine Name: {}".format(machineName))
     cursor = conn.cursor()
     i = 0
     while i < listLength:
-        jobName = jsonResult[i]['Name']
-        jobDesc = jsonResult[i]['Description']
-        groupName = jsonResult[i]['Group']
-        jobId = jsonResult[i]['Id']
-        print("Job Name: {}".format(jobName))
-        print("Job Description: {}".format(jobDesc))
-        print("Group Name: {}".format(groupName))
-        print("Job Id: {}".format(jobId))
         try:
-            paramaters = (machineName, jobId, jobName, jobDesc, groupName)
-            cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?)}", paramaters)
-            print("Executing Stored Procedure: visualcron.AddVisualCronInfo \n")
-            conn.commit()
-        except NameError:
-            print("Cannot execute Stored Procedure")
+            jobName = jsonResult[i]['Name']
+            jobDesc = jsonResult[i]['Description']
+            groupName = jsonResult[i]['Group']
+            jobId = jsonResult[i]['Id']
+            print("Job Name: {}".format(jobName))
+            print("Job Description: {}".format(jobDesc))
+            print("Group Name: {}".format(groupName))
+            print("Job Id: {}".format(jobId))
+        except TypeError:
+            print("Json Result list is likely empty, hence cannot iterate through an empty list")
+        if len(jobName) > 0:
+            try:
+                paramaters = (machineName, jobId, jobName, jobDesc, groupName)
+                cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?)}", paramaters)
+                print("Executing Stored Procedure: visualcron.AddVisualCronInfo \n")
+                conn.commit()
+            except NameError:
+                print("Cannot execute Stored Procedure")
+        else:
+            print("Job name is blank, no data to insert")
         i += 1
-    
- 
+      
 if __name__ == "__main__":
     main()
