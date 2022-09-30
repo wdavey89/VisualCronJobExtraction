@@ -1,24 +1,23 @@
-import os, json, pypyodbc, ctypes, requests
-from platform import machine
+import json, pypyodbc, ctypes, requests
 from requests import request
 from requests.models import Response
 
-
 def main():
     ctypes.windll.kernel32.SetConsoleTitleW('Extracting VisualCron Information')
-    machineName = os.environ['COMPUTERNAME']
     with open('appsettings.json') as appsettings:
         appsettingsData = json.load(appsettings)
         connectionString = appsettingsData['Connection String']
         username = appsettingsData['WebApiUsername']
         password = appsettingsData['WebApiPassword']
-        timeout = appsettingsData['WebApiTimeout']
-        apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)             
-        conn = getConnectionString(connectionString)
+        timeout = appsettingsData['WebApiTimeout']                 
+    conn = getConnectionString(connectionString)
+    machines = getMachineNames(conn)
+    for machineName in machines:
+        apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)
         authToken = connectAPI(machineName, apiUrl)
         print("Token Acquired: {} on Server Name: {}\n".format(authToken, machineName))
         getJobInfo(machineName, authToken, conn)
-        conn.close()
+    conn.close()
 
 def getConnectionString(connectionString):
     try:
@@ -28,6 +27,18 @@ def getConnectionString(connectionString):
     except pypyodbc.Error:
         print("Failed to connect to SQL Server")
         quit()
+
+def getMachineNames(conn):
+    machines = []
+    cursor = conn.cursor()
+    cursor.execute("{CALL visualcron.GetComputerNames}")
+    rows = cursor.fetchall()
+    if len(rows) > 0:
+        for row in rows:
+            computer = str(row)
+            line_out = computer.partition('\'')[-1].rstrip('\',)')
+            machines.append(line_out)
+    return machines
 
 def connectAPI(machineName, apiUrl):
     try:
@@ -41,11 +52,15 @@ def connectAPI(machineName, apiUrl):
         quit()  
     
 def getJobInfo(machineName, authToken, conn):
-    connectUrl = "http://localhost:8001/VisualCron/json/Job/List?token={}".format(authToken)
+    connectUrl = "http://{}:8001/VisualCron/json/Job/List?token={}".format(machineName, authToken)
     jobListResponse = requests.get(connectUrl)
     jsonResult = []
     jsonResult = jobListResponse.json()
     listLength = len(jsonResult)
+    jobName = ''
+    jobDesc = ''
+    groupName = ''
+    jobId = ''
     print("Machine Name: {}".format(machineName))
     cursor = conn.cursor()
     i = 0
@@ -66,7 +81,7 @@ def getJobInfo(machineName, authToken, conn):
         except NameError:
             print("Cannot execute Stored Procedure")
         i += 1
-        
-   
+    
+ 
 if __name__ == "__main__":
     main()
