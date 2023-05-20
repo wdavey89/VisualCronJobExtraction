@@ -35,9 +35,15 @@ BEGIN
 		IF EXISTS (SELECT 1 FROM [visualcron].[VisualCronData] where ComputerName = @computerName AND JobId = @jobId)
 		BEGIN
 			IF @CurrentJobDescription <> @jobDescription OR @CurrentGroupName <> @groupName OR @CurrentJobName <> @jobName OR @CurrentIsJobActive <> @isJobActive OR @CurrentLastExecutionTime <> @lastExecutionTime OR @CurrentNumberOfExecutes <> @numberOfExecutes
+			IF @CurrentJobDescription <> @jobDescription OR @CurrentGroupName <> @groupName OR @CurrentJobName <> @jobName OR @CurrentIsJobActive <> @isJobActive 
 				UPDATE [visualcron].[VisualCronData]
 				SET JobDescription = @jobDescription, JobName = @jobName, GroupName = @groupName, IsJobActive = @isJobActive, LastExecutionTime = @lastExecutionTime, 
 				NumberOfExecutes = @numberOfExecutes, DateEntryUpdatedInDatabase = GETDATE()
+				SET JobDescription = @jobDescription, JobName = @jobName, GroupName = @groupName, IsJobActive = @isJobActive, DateEntryUpdatedInDatabase = GETDATE()
+				WHERE ComputerName = @computerName AND JobId = @jobId
+			ELSE IF @CurrentLastExecutionTime <> @lastExecutionTime OR @CurrentNumberOfExecutes <> @numberOfExecutes
+				UPDATE [visualcron].[VisualCronData]
+				SET LastExecutionTime = @lastExecutionTime, NumberOfExecutes = @numberOfExecutes
 				WHERE ComputerName = @computerName AND JobId = @jobId
 		END
 		ELSE
