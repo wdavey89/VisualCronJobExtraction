@@ -1,8 +1,6 @@
-import json, pypyodbc, ctypes, requests
 import json, pypyodbc, ctypes, requests, datetime
 from requests import request
 from requests.models import Response
-import datetime
 
 # Main method. Read in the appsettings.json values for Connection String, username, password and timeout.
 def main():
@@ -90,9 +88,18 @@ def getJobInfo(machineName, authToken, conn):
                 jobStatus = 0
             lastExecution = jsonResult[i]['Stats']['DateLastExecution']
             numberOfExecutes = jsonResult[i]['Stats']['NoExecutes']
+            dateModified = jsonResult[i]['Stats']['DateModified']
             dateLastExecution = lastExecution.replace('+00:00', '')
             tempDateLastExecution = dateLastExecution.replace('T', ' ')
             dateLastExecution = tempDateLastExecution
+            dateLastExecution = tempDateLastExecution   
+            if groupName == "Default group" and jobName == "Backup settings" or groupName == "Default group" and jobName == "Delete old log files":
+                tempDateModified = dateModified.replace('T00:00:00Z', ' 00:00:00')
+                dateModified = tempDateModified
+            else:
+                tempDateModified = dateModified.split('+',1)
+                tempDateModified = tempDateModified[0]
+                dateModified = tempDateModified.replace('T', ' ')             
             print("[{}] Job Name: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), jobName))
             print("[{}] Job Description: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), jobDesc))
             print("[{}] Group Name: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), groupName))
@@ -101,12 +108,15 @@ def getJobInfo(machineName, authToken, conn):
             print("[{}] Last Execution: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), lastExecution))
             print("[{}] Number of Executes: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), numberOfExecutes))
             print("[{}] Date of Last Execution: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), dateLastExecution))
+            print("[{}] Date of Last Modification: {}".format(datetime.datetime.now().strftime("%H:%M:%S"), dateModified))
         except TypeError:
             print("[{}] Json Result list is likely empty, hence cannot iterate through an empty list".format(datetime.datetime.now().strftime("%H:%M:%S")))
         if len(jobName) > 0:
             try:
                 paramaters = (machineName, jobId, jobName, jobDesc or None, groupName, jobStatus, dateLastExecution, numberOfExecutes)
                 cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?,?,?,?)}", paramaters)
+                paramaters = (machineName, jobId, jobName, jobDesc or None, groupName, jobStatus, dateLastExecution, numberOfExecutes, dateModified)
+                cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?,?,?,?,?)}", paramaters)
                 print("[{}] Executing Stored Procedure: visualcron.AddVisualCronInfo \n".format(datetime.datetime.now().strftime("%H:%M:%S")))
                 conn.commit()
             except NameError:
