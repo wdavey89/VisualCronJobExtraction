@@ -4,6 +4,7 @@ from requests.models import Response
 
 def main():
     ctypes.windll.kernel32.SetConsoleTitleW('Extracting VisualCron Information')
+    # Catch statement to ensure appsettings.json file exists, and handle the error if it doesn't.
     try:
         with open('appsettings.json') as appsettings:
             appsettingsData = json.load(appsettings)
