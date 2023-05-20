@@ -71,16 +71,32 @@ def getJobInfo(machineName, authToken, conn):
             jobDesc = jsonResult[i]['Description']
             groupName = jsonResult[i]['Group']
             jobId = jsonResult[i]['Id']
+            jobStatus = jsonResult[i]['Stats']['Active']
+            if jobStatus == True:
+                jobStatus = 1
+            else:
+                jobStatus = 0
+            lastExecution = jsonResult[i]['Stats']['DateLastExecution']
+            numberOfExecutes = jsonResult[i]['Stats']['NoExecutes']
+            dateLastExecution = lastExecution.replace('+00:00', '')
+            tempDateLastExecution = dateLastExecution.replace('T', ' ')
+            dateLastExecution = tempDateLastExecution
             print("Job Name: {}".format(jobName))
             print("Job Description: {}".format(jobDesc))
             print("Group Name: {}".format(groupName))
             print("Job Id: {}".format(jobId))
+            print("Job Status: {}".format(jobStatus))
+            print("Last Execution: {}".format(lastExecution))
+            print("Number of Executes: {}".format(numberOfExecutes))
+            print("Date of Last Execution: {}".format(dateLastExecution))
         except TypeError:
             print("Json Result list is likely empty, hence cannot iterate through an empty list")
         if len(jobName) > 0:
             try:
                 paramaters = (machineName, jobId, jobName, jobDesc or None, groupName)
                 cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?)}", paramaters)
+                paramaters = (machineName, jobId, jobName, jobDesc or None, groupName, jobStatus, dateLastExecution, numberOfExecutes)
+                cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?,?,?,?)}", paramaters)
                 print("Executing Stored Procedure: visualcron.AddVisualCronInfo \n")
                 conn.commit()
             except NameError:
