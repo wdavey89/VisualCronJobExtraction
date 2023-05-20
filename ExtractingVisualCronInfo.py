@@ -4,21 +4,25 @@ from requests.models import Response
 
 def main():
     ctypes.windll.kernel32.SetConsoleTitleW('Extracting VisualCron Information')
-    with open('appsettings.json') as appsettings:
-        appsettingsData = json.load(appsettings)
-        connectionString = appsettingsData['Connection String']
-        username = appsettingsData['WebApiUsername']
-        password = appsettingsData['WebApiPassword']
-        timeout = appsettingsData['WebApiTimeout']                 
-    conn = getConnectionString(connectionString)
-    machines = getMachineNames(conn)
-    for machineName in machines:
-        apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)
-        authToken = connectAPI(machineName, apiUrl)
-        print("Token Acquired: {} on Server Name: {}\n".format(authToken, machineName))
-        getJobInfo(machineName, authToken, conn)
+    try:
+        with open('appsettings.json') as appsettings:
+            appsettingsData = json.load(appsettings)
+            connectionString = appsettingsData['Connection String']
+            username = appsettingsData['WebApiUsername']
+            password = appsettingsData['WebApiPassword']
+            timeout = appsettingsData['WebApiTimeout']              
+        conn = getConnectionString(connectionString)
+        machines = getMachineNames(conn)
+        for machineName in machines:
+            apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)
+            authToken = connectAPI(machineName, apiUrl)
+            print("Token Acquired: {} on Server Name: {}\n".format(authToken, machineName))
+            getJobInfo(machineName, authToken, conn)
+    except FileNotFoundError:
+        print("No appsettings.json file can be found.")
+        quit()
     conn.close()
-
+    
 def getConnectionString(connectionString):
     try:
         conn = pypyodbc.connect(connectionString)
@@ -31,7 +35,7 @@ def getConnectionString(connectionString):
 def getMachineNames(conn):
     machines = []
     cursor = conn.cursor()
-    cursor.execute("{CALL visualcron.GetComputerNames}")
+    cursor.execute("{CALL visualcron.GetMachineNames}")
     rows = cursor.fetchall()
     if len(rows) > 0:
         for row in rows:
@@ -74,7 +78,7 @@ def getJobInfo(machineName, authToken, conn):
             print("Json Result list is likely empty, hence cannot iterate through an empty list")
         if len(jobName) > 0:
             try:
-                paramaters = (machineName, jobId, jobName, jobDesc, groupName)
+                paramaters = (machineName, jobId, jobName, jobDesc or None, groupName)
                 cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?)}", paramaters)
                 print("Executing Stored Procedure: visualcron.AddVisualCronInfo \n")
                 conn.commit()
@@ -83,6 +87,6 @@ def getJobInfo(machineName, authToken, conn):
         else:
             print("Job name is blank, no data to insert")
         i += 1
-      
+   
 if __name__ == "__main__":
     main()
