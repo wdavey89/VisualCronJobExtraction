@@ -1,8 +1,7 @@
-USE [VisualCronInfo]
 USE [VisualCronJobInformation]
 GO
-/****** Object:  StoredProcedure [visualcron].[AddVisualCronInfo]    Script Date: 11/11/2022 11:44:38 ******/
 /****** Object:  StoredProcedure [visualcron].[AddVisualCronInfo]    Script Date: 12/05/2023 15:19:26 ******/
+/****** Object:  StoredProcedure [visualcron].[AddVisualCronInfo]    Script Date: 12/05/2023 15:30:03 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -19,6 +18,8 @@ ALTER PROCEDURE [visualcron].[AddVisualCronInfo]
 @isJobActive BIT,
 @lastExecutionTime DATETIME2,
 @numberOfExecutes INT
+@numberOfExecutes INT,
+@dateModified DATETIME2
 )
 AS
 BEGIN
@@ -37,10 +38,11 @@ BEGIN
 		SET @CurrentNumberOfExecutes = (SELECT [NumberOfExecutes] FROM [visualcron].[VisualCronData] WHERE ComputerName = @computerName AND JobId = @jobId)
 		IF EXISTS (SELECT 1 FROM [visualcron].[VisualCronData] where ComputerName = @computerName AND JobId = @jobId)
 		BEGIN
-			IF @CurrentJobDescription <> @jobDescription OR @CurrentGroupName <> @groupName OR @CurrentJobName <> @jobName OR @CurrentIsJobActive <> @isJobActive 
 			IF @CurrentJobDescription <> @jobDescription OR @CurrentJobDescription IS NULL OR @CurrentGroupName <> @groupName OR @CurrentJobName <> @jobName OR @CurrentIsJobActive <> @isJobActive 
+			IF @CurrentJobDescription <> @jobDescription OR @CurrentJobDescription IS NULL OR @CurrentJobDescription IS NOT NULL AND @jobDescription IS NULL OR @CurrentGroupName <> @groupName OR @CurrentJobName <> @jobName OR @CurrentIsJobActive <> @isJobActive 
 				UPDATE [visualcron].[VisualCronData]
 				SET JobDescription = @jobDescription, JobName = @jobName, GroupName = @groupName, IsJobActive = @isJobActive, DateEntryUpdatedInDatabase = GETDATE()
+				SET JobDescription = @jobDescription, JobName = @jobName, GroupName = @groupName, IsJobActive = @isJobActive, DateEntryUpdatedInDatabase = @dateModified
 				WHERE ComputerName = @computerName AND JobId = @jobId
 			ELSE IF @CurrentLastExecutionTime <> @lastExecutionTime OR @CurrentNumberOfExecutes <> @numberOfExecutes
 				UPDATE [visualcron].[VisualCronData]
@@ -50,5 +52,7 @@ BEGIN
 		ELSE
 			INSERT INTO [visualcron].[VisualCronData](ComputerName, JobId, JobName, JobDescription, GroupName, IsJobActive, LastExecutionTime, NumberOfExecutes, DateAddedToDatabase)
 			VALUES (@computerName, @jobId, @jobName, @jobDescription, @groupName, @isJobActive, @lastExecutionTime, @numberOfExecutes, GETDATE())
+			INSERT INTO [visualcron].[VisualCronData](ComputerName, JobId, JobName, JobDescription, GroupName, IsJobActive, LastExecutionTime, NumberOfExecutes, DateAddedToDatabase, DateEntryUpdatedInDatabase)
+			VALUES (@computerName, @jobId, @jobName, @jobDescription, @groupName, @isJobActive, @lastExecutionTime, @numberOfExecutes, GETDATE(), @dateModified)
 
 END
