@@ -4,6 +4,7 @@ from requests.models import Response
 
 def main():
     ctypes.windll.kernel32.SetConsoleTitleW('Extracting VisualCron Information')
+    print("VisualCron Data Retrieval starting...")
     # Catch statement to ensure appsettings.json file exists, and handle the error if it doesn't.
     try:
         with open('appsettings.json') as appsettings:
@@ -18,6 +19,12 @@ def main():
             apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)
             authToken = connectAPI(machineName, apiUrl)
             print("Token Acquired: {} on Server Name: {}\n".format(authToken, machineName))
+            if authToken == None:
+                machines.remove(machineName)
+        for machineName in machines:
+            apiUrl = "http://{}:8001/VisualCron/json/logon?username={}&password={}&expire={}".format(machineName, username, password, timeout)
+            authToken = connectAPI(machineName, apiUrl)
+            print("Token Acquired: {} on Server Name: {}".format(authToken, machineName))
             getJobInfo(machineName, authToken, conn)
     except FileNotFoundError:
         print("No appsettings.json file can be found.")
@@ -28,6 +35,7 @@ def getConnectionString(connectionString):
     try:
         conn = pypyodbc.connect(connectionString)
         print("Connected to SQL Server")
+        print("Connected to SQL Server...")
         return conn
     except pypyodbc.Error:
         print("Failed to connect to SQL Server")
@@ -43,6 +51,7 @@ def getMachineNames(conn):
             computer = str(row)
             line_out = computer.partition('\'')[-1].rstrip('\',)')
             machines.append(line_out)
+            machines.append(line_out)        
     return machines
 
 def connectAPI(machineName, apiUrl):
@@ -55,6 +64,7 @@ def connectAPI(machineName, apiUrl):
     except requests.ConnectionError:
         print("Unable to connect to URL, please check this is a valid URL, or ensure the WebAPI option is enabled in VisualCron on target machine {}".format(machineName))
         quit()  
+        print("Unable to connect to URL, please check this is a valid URL, or ensure the WebAPI option is enabled in VisualCron on target machine {}\n".format(machineName))  
     
 def getJobInfo(machineName, authToken, conn):
     connectUrl = "http://{}:8001/VisualCron/json/Job/List?token={}".format(machineName, authToken)
@@ -93,8 +103,6 @@ def getJobInfo(machineName, authToken, conn):
             print("Json Result list is likely empty, hence cannot iterate through an empty list")
         if len(jobName) > 0:
             try:
-                paramaters = (machineName, jobId, jobName, jobDesc or None, groupName)
-                cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?)}", paramaters)
                 paramaters = (machineName, jobId, jobName, jobDesc or None, groupName, jobStatus, dateLastExecution, numberOfExecutes)
                 cursor.execute("{CALL visualcron.AddVisualCronInfo (?,?,?,?,?,?,?,?)}", paramaters)
                 print("Executing Stored Procedure: visualcron.AddVisualCronInfo \n")
