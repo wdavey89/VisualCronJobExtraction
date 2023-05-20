@@ -1,4 +1,5 @@
 import json, pypyodbc, ctypes, requests
+import json, pypyodbc, ctypes, requests, datetime
 from requests import request
 from requests.models import Response
 import datetime
@@ -31,7 +32,6 @@ def main():
         print("[{}] No appsettings.json file can be found.".format(datetime.datetime.now().strftime("%H:%M:%S")))
         quit()
     conn.close()
-    
 
 # Check the connection string to ensure it connects without issue, if it fails, exit the program.
 def getConnectionString(connectionString):
@@ -66,7 +66,6 @@ def connectAPI(machineName, apiUrl):
         return authToken
     except requests.ConnectionError:
         print("[{}] Unable to connect to URL, please check this is a valid URL, or ensure the WebAPI option is enabled in VisualCron on target machine {}\n".format(datetime.datetime.now().strftime("%H:%M:%S"), machineName))
-    
 
 # Retrieve the job information for the specific fields from the WebAPI of each machine, and call the Stored Procedure to insert into the database table 'visualcron.VisualCronData'
 def getJobInfo(machineName, authToken, conn):
